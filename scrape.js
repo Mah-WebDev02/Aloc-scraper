@@ -95,17 +95,17 @@ async function scrapeAll() {
     }
 }
 
+
 // Main execution
 (async function main() {
     await connectToDatabase();
 
-    try {
-        await scrapeAll();
-        console.log('🏁 Scraping completed successfully.');
-    } catch (error) {
-        console.error('❌ Scraping failed:', error.message);
-    } finally {
-        await mongoose.connection.close();
-        console.log('🔗 MongoDB connection closed.');
-    }
+    setInterval(async () => {
+        try {
+            await scrapeAll();
+            console.log('🏁 Scraping completed successfully.');
+        } catch (error) {
+            console.error('❌ Scraping failed:', error.message);
+        }
+    }, 45000); // Run every 45 seconds
 })();
