@@ -54,11 +54,11 @@ const apiClient = axios.create({
 // Fetch questions for a specific subject and year
 async function fetchQuestions(subject, year, type) {
     try {
-        const response = await apiClient.get('/m', { params: { subject, year, type } });
-        console.log(`📥 Fetched ${response.data.length} questions for ${subject}, ${type} (${year}).`);
+        const response = await apiClient.get('/m', { params: { subject, year } });
+        console.log(`📥 Fetched ${response.data.length} questions for ${subject} (${year}).`);
         return response.data;
     } catch (error) {
-        console.error(`❌ Failed to fetch questions for ${subject}, ${type} (${year}):`, error.message);
+        console.error(`❌ Failed to fetch questions for ${subject} (${year}):`, error.message);
         return [];
     }
 }
