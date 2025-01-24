@@ -77,10 +77,9 @@ async function saveQuestions(questions) {
 // Main function to scrape all questions
 async function scrapeAll() {
     console.log('🚀 Starting ALOC Questions Scraper...');
-    const { subjects, years } = await fetchCategories();
 
     for (const subject of subjects) {
-      for (const subject of subjects) {
+      for (const type of types) {
         for (const year of years) {
             const questions = await fetchQuestions(subject, year);
             if (questions.length > 0) {
