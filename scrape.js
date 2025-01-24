@@ -1,111 +1,141 @@
-const dotenv = require('dotenv');
-const mongoose = require('mongoose');
 const axios = require('axios');
+const mongoose = require('mongoose');
+require('dotenv').config();
 
-// Load environment variables
-dotenv.config();
-
-// MongoDB connection
-async function connectToDatabase() {
-    try {
-        await mongoose.connect(process.env.MONGODB_CONNECTION_STRING, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-        console.log('✅ Connected to MongoDB.');
-    } catch (error) {
-        console.error('❌ MongoDB Connection Error:', error.message);
-        process.exit(1);
-    }
-}
-
-// Question schema and model
-const QuestionSchema = new mongoose.Schema(
-    {
-        question: String,
-        options: [String],
-        answer: String,
-        year: Number,
-        subject: String,
-        type: String,
-    },
-    { timestamps: true }
-);
-const Question = mongoose.model('Question', QuestionSchema);
-
-// API client
-const apiClient = axios.create({
-    headers: {
-        Authorization: `Bearer ${process.env.ALOC_API_TOKEN}`,
-    },
-});
-
-        const subjects = [
+class ALOCScraper {
+    constructor() {
+        // Subjects available in the ALOC API
+        this.subjects = [
             'mathematics', 'english', 'physics', 'chemistry', 
             'biology', 'commerce', 'accounting', 'economics', 
-            'government', 'literature', 'geography'
-        ],
+            'government', 'literature', 'geography', 'christian-religious-studies'
+        ];
 
-        years = Array.from({length: 35}, (_, i) => 1990 + i),
-        types = ['utme', 'wassce', 'post-utme'];
+        // Years to scrape (adjust as needed)
+        this.years = Array.from({length: 20}, (_, i) => 2000 + i);
 
+        // Exam types
+        this.types = ['utme', 'wassce', 'post-utme'];
 
-// Fetch questions for a specific subject and year
-async function fetchQuestions(subject, year, type) {
-    try {
-        const response = await apiClient.get(`https://questions.aloc.com.ng/api/v2/q?subject=chemistry&year=2005`);
-        console.log(`📥 Fetched ${response.data.length} questions for ${subject} (${year}).`);
-        return response.data;
-    } catch (error) {
-        console.error(`❌ Failed to fetch questions for ${subject} (${year}):`, error.message);
-        return [];
-    }
+        // Axios instance for consistent API calls
+        this.api = axios.create({
+            baseURL: 'https://questions.aloc.com.ng/api/v2',
+            headers: {
+                'Authorization': `Bearer ${process.env.ALOC_API_TOKEN}`,
+                'Accept': 'application/json'
             }
+        });
 
-// Save questions to MongoDB
-async function saveQuestions(questions) {
-    if (questions.length === 0) return;
-    try {
-        await Question.insertMany(questions, { ordered: false });
-        console.log(`💾 Saved ${questions.length} questions to MongoDB.`);
-    } catch (error) {
-        console.error('❌ Error saving questions:', error.message);
+        // MongoDB connection
+        this.mongoUri = process.env.MONGODB_CONNECTION_STRING;
     }
-}
 
-// Main function to scrape all questions
-async function scrapeAll() {
-    console.log('🚀 Starting ALOC Questions Scraper...');
-
-    for (const subject of subjects) {
-      for (const type of types) {
-        for (const year of years) {
-            const questions = await fetchQuestions(subject, year);
-            if (questions.length > 0) {
-                await saveQuestions(
-                    questions.map((q) => ({
-                        ...q,
-                        subject,
-                        year,
-                    }))
-                );
-            }
-        }
-      }
-    }
-}
-
-
-// Main execution
-(async function main() {
-    await connectToDatabase();
-
-    setInterval(async () => {
+    async connectMongoDB() {
         try {
-            await scrapeAll();
-            console.log('🏁 Scraping completed successfully.');
+            await mongoose.connect(this.mongoUri, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+            console.log('Connected to MongoDB successfully');
         } catch (error) {
-            console.error('❌ Scraping failed:', error.message);
+            console.error('MongoDB Connection Error:', error);
+            process.exit(1);
         }
-    }, 45000); // Run every 45 seconds
-})();
+    }
+
+    async createDynamicModel(year, subject) {
+        // Create a dynamic schema for each year and subject
+        const questionSchema = new mongoose.Schema({
+            question: String,
+            options: [String],
+            answer: String,
+            year: Number,
+            subject: String,
+            type: String,
+            explanation: String
+        });
+
+        // Use a dynamic model name
+        const modelName = `Question_${year}_${subject}`;
+        
+        // Check if model already exists to prevent recompiling
+        if (mongoose.models[modelName]) {
+            return mongoose.models[modelName];
+        }
+
+        return mongoose.model(modelName, questionSchema);
+    }
+
+    async scrapeQuestions(subject, year, type) {
+        try {
+            const response = await this.api.get('/m', {
+                params: { subject, year, type }
+            });
+
+            return response.data;
+        } catch (error) {
+            console.error(`Error scraping ${subject} ${year} ${type}:`, error.message);
+            return [];
+        }
+    }
+
+    async saveQuestions(questions, year, subject) {
+        const QuestionModel = await this.createDynamicModel(year, subject);
+        
+        const bulkOps = questions.map(q => ({
+            updateOne: {
+                filter: { 
+                    question: q.question, 
+                    year, 
+                    subject 
+                },
+                update: q,
+                upsert: true
+            }
+        }));
+
+        try {
+            const result = await QuestionModel.bulkWrite(bulkOps);
+            console.log(`Saved ${result.upsertedCount} new questions for ${subject} ${year}`);
+        } catch (error) {
+            console.error(`Error saving questions for ${subject} ${year}:`, error);
+        }
+    }
+
+    async runFullScrape() {
+        await this.connectMongoDB();
+
+        for (const subject of this.subjects) {
+            for (const year of this.years) {
+                for (const type of this.types) {
+                    console.log(`Scraping: ${subject} - ${year} - ${type}`);
+                    
+                    const questions = await this.scrapeQuestions(subject, year, type);
+                    
+                    if (questions && questions.length > 0) {
+                        await this.saveQuestions(
+                            questions.map(q => ({
+                                ...q,
+                                year,
+                                subject,
+                                type
+                            })), 
+                            year, 
+                            subject
+                        );
+                    }
+
+                    // Add a small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+        }
+
+        console.log('Full scrape completed');
+        mongoose.connection.close();
+    }
+}
+
+// Run the scraper
+const scraper = new ALOCScraper();
+scraper.runFullScrape().catch(console.error);
