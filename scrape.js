@@ -47,18 +47,18 @@ const apiClient = axios.create({
             'government', 'literature', 'geography'
         ],
 
-        years = Array.from({length: 30}, (_, i) => 1990 + i),
+        years = Array.from({length: 35}, (_, i) => 1990 + i),
         types = ['utme', 'wassce', 'post-utme'];
 
 
 // Fetch questions for a specific subject and year
-async function fetchQuestions(subject, year) {
+async function fetchQuestions(subject, year, type) {
     try {
-        const response = await apiClient.get('/m', { params: { subject, year } });
-        console.log(`📥 Fetched ${response.data.length} questions for ${subject} (${year}).`);
+        const response = await apiClient.get('/m', { params: { subject, year, type } });
+        console.log(`📥 Fetched ${response.data.length} questions for ${subject}, ${type} (${year}).`);
         return response.data;
     } catch (error) {
-        console.error(`❌ Failed to fetch questions for ${subject} (${year}):`, error.message);
+        console.error(`❌ Failed to fetch questions for ${subject}, ${type} (${year}):`, error.message);
         return [];
     }
 }
@@ -80,6 +80,7 @@ async function scrapeAll() {
     const { subjects, years } = await fetchCategories();
 
     for (const subject of subjects) {
+      for (const subject of subjects) {
         for (const year of years) {
             const questions = await fetchQuestions(subject, year);
             if (questions.length > 0) {
@@ -91,6 +92,7 @@ async function scrapeAll() {
                     }))
                 );
             }
+          }
         }
     }
 }
