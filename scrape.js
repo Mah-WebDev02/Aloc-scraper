@@ -41,17 +41,15 @@ const apiClient = axios.create({
     },
 });
 
-// Fetch all categories
-async function fetchCategories() {
-    try {
-        const response = await apiClient.get('/categories');
-        console.log('📊 Fetched categories:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('❌ Failed to fetch categories:', error.message);
-        throw error;
-    }
-}
+        const subjects = [
+            'mathematics', 'english', 'physics', 'chemistry', 
+            'biology', 'commerce', 'accounting', 'economics', 
+            'government', 'literature', 'geography'
+        ],
+
+        years = Array.from({length: 30}, (_, i) => 1990 + i),
+        types = ['utme', 'wassce', 'post-utme'];
+
 
 // Fetch questions for a specific subject and year
 async function fetchQuestions(subject, year) {
