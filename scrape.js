@@ -53,14 +53,14 @@ const apiClient = axios.create({
 // Fetch questions for a specific subject and year
 async function fetchQuestions(subject, year, type) {
     try {
-        const response = await apiClient.get('https://questions.aloc.com.ng/api/v2/q?subject=${subject}&year=${year}');
+        const response = await apiClient.get(`https://questions.aloc.com.ng/api/v2/q?subject=${subject}&year=${year}`);
         console.log(`📥 Fetched ${response.data.length} questions for ${subject} (${year}).`);
         return response.data;
     } catch (error) {
         console.error(`❌ Failed to fetch questions for ${subject} (${year}):`, error.message);
         return [];
     }
-}
+            }
 
 // Save questions to MongoDB
 async function saveQuestions(questions) {
