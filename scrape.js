@@ -68,7 +68,7 @@ class ALOCScraper {
             this.logProgress(`Fetching questions: Subject=${subject}, Year=${year}, Type=${type}`, 'debug');
             
             const response = await this.api.get('/m', {
-                params: { subject, year, type }
+                params: { subject }
             });
 
             const questionCount = response.data ? response.data.length : 0;
