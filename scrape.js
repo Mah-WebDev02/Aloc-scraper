@@ -35,7 +35,6 @@ const Question = mongoose.model('Question', QuestionSchema);
 
 // API client
 const apiClient = axios.create({
-    baseURL: 'https://questions.aloc.com.ng/api/v2',
     headers: {
         Authorization: `Bearer ${process.env.ALOC_API_TOKEN}`,
     },
@@ -54,7 +53,7 @@ const apiClient = axios.create({
 // Fetch questions for a specific subject and year
 async function fetchQuestions(subject, year, type) {
     try {
-        const response = await apiClient.get('/q?subject=${subject}&year=${year}');
+        const response = await apiClient.get('https://questions.aloc.com.ng/api/v2/q?subject=${subject}&year=${year}');
         console.log(`📥 Fetched ${response.data.length} questions for ${subject} (${year}).`);
         return response.data;
     } catch (error) {
