@@ -54,7 +54,7 @@ const apiClient = axios.create({
 // Fetch questions for a specific subject and year
 async function fetchQuestions(subject, year, type) {
     try {
-        const response = await apiClient.get('/q?subject=${subject}&year=${year}&type=${type}');
+        const response = await apiClient.get('/q?subject=${subject}&year=${year}');
         console.log(`📥 Fetched ${response.data.length} questions for ${subject} (${year}).`);
         return response.data;
     } catch (error) {
@@ -79,7 +79,7 @@ async function scrapeAll() {
     console.log('🚀 Starting ALOC Questions Scraper...');
 
     for (const subject of subjects) {
-      for (const subject of subjects) {
+      for (const type of types) {
         for (const year of years) {
             const questions = await fetchQuestions(subject, year);
             if (questions.length > 0) {
